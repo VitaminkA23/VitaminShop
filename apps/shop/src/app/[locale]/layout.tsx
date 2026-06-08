@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { CartProvider } from "@/contexts/CartContext";
 import { DictionaryProvider } from "@/i18n/DictionaryContext";
 import Header from "@/components/Header";
 import {Locale, locales} from "@/i18n/config";
@@ -22,12 +21,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       <>
         <LangUpdater locale={currentLocale} />
         <DictionaryProvider dict={dict}>
-          <CartProvider>
-            <Header locale={"en"} />
-            <div className="min-h-screen bg-gray-50 text-gray-900 antialiased">
-              {children}
-            </div>
-          </CartProvider>
+          <Header locale={"en"} />
+          <div className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+            {children}
+          </div>
         </DictionaryProvider>
       </>
   );
