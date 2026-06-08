@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import '../globals.css';
 import { getDictionary } from '../../i18n/getDictionary';
 import { DictionaryProvider } from '../../i18n/DictionaryContext';
 import { CartProvider } from '../../contexts/CartContext';
