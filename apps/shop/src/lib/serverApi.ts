@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const raw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
 
 export async function serverApiFetch<T = unknown>(
   path: string,
