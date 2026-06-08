@@ -25,6 +25,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           <div className="min-h-screen bg-gray-50 text-gray-900 antialiased">
             {children}
           </div>
+
         </DictionaryProvider>
       </>
   );
