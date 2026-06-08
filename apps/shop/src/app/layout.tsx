@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { CartProvider } from '@/contexts/CartContext';
-import '../globals.css';
+import './globals.css';
 
 export const metadata: Metadata = {
     title: 'Vitamin Shop',
