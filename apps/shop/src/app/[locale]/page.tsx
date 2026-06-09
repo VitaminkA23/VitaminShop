@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useCart } from '../../contexts/CartContext';
 import { useDictionary } from '../../i18n/DictionaryContext';
 import { apiFetch } from '../../lib/api';
@@ -37,6 +39,8 @@ function SkeletonCard() {
 function ProductCard({ product }: { product: ProductWithLike }) {
   const { product: t } = useDictionary();
   const { addToCart } = useCart();
+  const pathname = usePathname();
+  const locale = pathname.split('/')[1] ?? 'en';
 
   const [liked, setLiked] = useState(product.liked);
   const [likeLoading, setLikeLoading] = useState(false);
@@ -98,19 +102,21 @@ function ProductCard({ product }: { product: ProductWithLike }) {
           <div className="absolute inset-0 z-10 bg-white/55 backdrop-blur-[2px]" />
         )}
 
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-          onError={(e) => {
-            const img = e.target as HTMLImageElement;
-            img.onerror = null;
-            img.src = `https://placehold.co/400x400/ecfdf5/059669?text=${encodeURIComponent(
-              product.name.slice(0, 2).toUpperCase(),
-            )}`;
-          }}
-        />
+        <Link href={`/${locale}/products/${product.id}`} className="block h-full w-full">
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            onError={(e) => {
+              const img = e.target as HTMLImageElement;
+              img.onerror = null;
+              img.src = `https://placehold.co/400x400/ecfdf5/059669?text=${encodeURIComponent(
+                product.name.slice(0, 2).toUpperCase(),
+              )}`;
+            }}
+          />
+        </Link>
 
         {/* Stock badge — top-left */}
         {lowStock && (
@@ -152,9 +158,12 @@ function ProductCard({ product }: { product: ProductWithLike }) {
       <div className="flex flex-1 flex-col p-4">
         {/* Name + price row */}
         <div className="mb-1.5 flex items-start justify-between gap-2">
-          <h3 className="line-clamp-1 font-semibold leading-snug text-gray-900">
+          <Link
+            href={`/${locale}/products/${product.id}`}
+            className="line-clamp-1 font-semibold leading-snug text-gray-900 transition-colors hover:text-emerald-700"
+          >
             {product.name}
-          </h3>
+          </Link>
           <span className="shrink-0 text-base font-extrabold text-emerald-600">
             ${product.price.toFixed(2)}
           </span>

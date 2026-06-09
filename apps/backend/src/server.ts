@@ -180,6 +180,30 @@ app.get('/api/products', optionalAuth, async (req, res, next) => {
   }
 });
 
+app.get('/api/products/:id', optionalAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.userId;
+
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) {
+      res.status(404).json({ message: 'Product not found' });
+      return;
+    }
+
+    if (userId) {
+      const like = await prisma.like.findUnique({
+        where: { userId_productId: { userId, productId: id } },
+      });
+      res.json({ product: { ...product, liked: !!like } });
+    } else {
+      res.json({ product: { ...product, liked: false } });
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.post('/api/products', requireAdmin, async (req, res, next) => {
   try {
     const { name, description, price, imageUrl, category, stock } = req.body as {

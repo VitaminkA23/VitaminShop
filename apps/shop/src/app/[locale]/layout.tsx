@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { DictionaryProvider } from "@/i18n/DictionaryContext";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import {Locale, locales} from "@/i18n/config";
 import {getDictionary} from "@/i18n/getDictionary";
 import LangUpdater from "@/components/LangUpdater";
@@ -18,15 +19,16 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const dict = await getDictionary(currentLocale);
 
   return (
-      <>
-        <LangUpdater locale={currentLocale} />
-        <DictionaryProvider dict={dict}>
-          <Header locale={"en"} />
-          <div className="min-h-screen bg-gray-50 text-gray-900 antialiased">
-            {children}
-          </div>
-
-        </DictionaryProvider>
-      </>
+    <>
+      <LangUpdater locale={currentLocale} />
+      <DictionaryProvider dict={dict}>
+        <Header locale={currentLocale} />
+        <div className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+          {children}
+        </div>
+        <Footer locale={currentLocale} />
+      </DictionaryProvider>
+    </>
   );
 }
+
