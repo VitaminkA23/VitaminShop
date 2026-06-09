@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '../../contexts/CartContext';
 import { useDictionary } from '../../i18n/DictionaryContext';
@@ -226,11 +226,23 @@ function ProductCard({ product }: { product: ProductWithLike }) {
 
 export default function HomePage() {
   const { home: t } = useDictionary();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const urlCategory = searchParams.get('category') ?? 'all';
+  const searchQuery = searchParams.get('q') ?? '';
+  const locale = pathname.split('/')[1] ?? 'en';
 
   const [products, setProducts] = useState<ProductWithLike[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState(urlCategory);
+
+  // Sync category selection when URL changes (e.g. header dropdown)
+  useEffect(() => {
+    setActiveCategory(urlCategory);
+  }, [urlCategory]);
 
   const loadProducts = useCallback(() => {
     setLoading(true);
@@ -247,14 +259,33 @@ export default function HomePage() {
     loadProducts();
   }, [loadProducts]);
 
+  function handleCategoryChange(cat: string) {
+    setActiveCategory(cat);
+    const params = new URLSearchParams(searchParams.toString());
+    if (cat === 'all') {
+      params.delete('category');
+    } else {
+      params.set('category', cat);
+    }
+    router.replace(`/${locale}?${params.toString()}`);
+  }
+
   const categories = [
     'all',
     ...Array.from(new Set(products.map((p) => p.category))).sort(),
   ];
-  const visible =
-    activeCategory === 'all'
-      ? products
-      : products.filter((p) => p.category === activeCategory);
+
+  const visible = products.filter((p) => {
+    const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
+    if (!matchesCategory) return false;
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      p.description.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -331,7 +362,7 @@ export default function HomePage() {
             {categories.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setActiveCategory(cat)}
+                onClick={() => handleCategoryChange(cat)}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium capitalize transition-all duration-150 ${
                   cat === activeCategory
                     ? 'bg-emerald-600 text-white shadow-sm'
@@ -344,10 +375,13 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Result count */}
+        {/* Result count / search indicator */}
         {!loading && !error && visible.length > 0 && (
           <p className="mb-6 text-sm text-gray-400">
             Showing {visible.length} {visible.length === 1 ? 'product' : 'products'}
+            {searchQuery && (
+              <> for <span className="font-semibold text-gray-600">&ldquo;{searchQuery}&rdquo;</span></>
+            )}
           </p>
         )}
 
@@ -412,7 +446,7 @@ export default function HomePage() {
             <p className="mt-1.5 text-sm text-gray-500">{t.noProductsSubtitle}</p>
             {activeCategory !== 'all' && (
               <button
-                onClick={() => setActiveCategory('all')}
+                onClick={() => handleCategoryChange('all')}
                 className="mt-5 rounded-xl bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
               >
                 Show all products

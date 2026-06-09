@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch } from '../../../../lib/api';
@@ -10,6 +10,19 @@ import type { ProductWithLike, ToggleLikeResponse } from '@vitamin/types';
 
 interface ProductDetailResponse {
   product: ProductWithLike;
+}
+
+// Build a 4-image gallery from the single imageUrl the backend provides.
+// Labels simulate the "angle views" a real multi-image upload would supply.
+// When the backend is extended to return string[], replace this with product.images.
+function buildGallery(imageUrl: string, name: string): string[] {
+  const initials = encodeURIComponent(name.slice(0, 2).toUpperCase());
+  return [
+    imageUrl,
+    `https://placehold.co/600x600/ecfdf5/059669?text=${initials}+%E2%80%A2+Side`,
+    `https://placehold.co/600x600/d1fae5/065f46?text=${initials}+%E2%80%A2+Back`,
+    `https://placehold.co/600x600/a7f3d0/064e3b?text=${initials}+%E2%80%A2+Detail`,
+  ];
 }
 
 export default function ProductDetailPage() {
@@ -28,6 +41,12 @@ export default function ProductDetailPage() {
   const [liked, setLiked] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
 
+  // Gallery state
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [selectedImage, setSelectedImage] = useState('');
+  const [imgVisible, setImgVisible] = useState(true);
+  const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -35,6 +54,9 @@ export default function ProductDetailPage() {
       .then((data) => {
         setProduct(data.product);
         setLiked(data.product.liked);
+        const imgs = buildGallery(data.product.imageUrl, data.product.name);
+        setGalleryImages(imgs);
+        setSelectedImage(imgs[0]);
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : 'Failed to load product'),
@@ -74,6 +96,16 @@ export default function ProductDetailPage() {
     setCartState('added');
     setTimeout(() => setCartState('idle'), 2000);
   }, [product, cartState, addToCart]);
+
+  function selectImage(url: string) {
+    if (url === selectedImage) return;
+    if (fadeTimer.current) clearTimeout(fadeTimer.current);
+    setImgVisible(false);
+    fadeTimer.current = setTimeout(() => {
+      setSelectedImage(url);
+      setImgVisible(true);
+    }, 160);
+  }
 
   if (loading) {
     return (
@@ -149,56 +181,101 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2">
 
             {/* Image panel */}
-            <div className="relative flex min-h-[380px] items-center justify-center bg-gradient-to-br from-gray-50 to-emerald-50/50 p-10">
-              {outOfStock && (
-                <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[2px]" />
-              )}
-              {outOfStock && (
-                <span className="absolute left-4 top-4 z-20 rounded-full bg-gray-500/90 px-3 py-1 text-sm font-bold text-white shadow">
-                  {t.outOfStock}
-                </span>
-              )}
-              {lowStock && !outOfStock && (
-                <span className="absolute left-4 top-4 z-20 rounded-full bg-amber-500 px-3 py-1 text-sm font-bold text-white shadow">
-                  Only {product.stock} left!
-                </span>
-              )}
+            <div className="flex flex-col">
 
-              {/* Like button */}
-              <button
-                onClick={toggleLike}
-                disabled={likeLoading}
-                aria-label={liked ? t.likeRemove : t.likeAdd}
-                className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-md transition-all duration-150 hover:scale-110 hover:shadow-lg disabled:opacity-50"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  className={`h-5 w-5 transition-colors duration-200 ${
-                    liked ? 'fill-rose-500 stroke-rose-500' : 'fill-none stroke-gray-400'
-                  }`}
+              {/* Main image */}
+              <div className="relative flex min-h-[380px] flex-1 items-center justify-center bg-gradient-to-br from-gray-50 to-emerald-50/50 p-10">
+                {outOfStock && (
+                  <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[2px]" />
+                )}
+                {outOfStock && (
+                  <span className="absolute left-4 top-4 z-20 rounded-full bg-gray-500/90 px-3 py-1 text-sm font-bold text-white shadow">
+                    {t.outOfStock}
+                  </span>
+                )}
+                {lowStock && !outOfStock && (
+                  <span className="absolute left-4 top-4 z-20 rounded-full bg-amber-500 px-3 py-1 text-sm font-bold text-white shadow">
+                    Only {product.stock} left!
+                  </span>
+                )}
+
+                {/* Like button */}
+                <button
+                  onClick={toggleLike}
+                  disabled={likeLoading}
+                  aria-label={liked ? t.likeRemove : t.likeAdd}
+                  className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-md transition-all duration-150 hover:scale-110 hover:shadow-lg disabled:opacity-50"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    className={`h-5 w-5 transition-colors duration-200 ${
+                      liked ? 'fill-rose-500 stroke-rose-500' : 'fill-none stroke-gray-400'
+                    }`}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                    />
+                  </svg>
+                </button>
 
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className="relative z-0 max-h-[460px] w-full object-contain drop-shadow-lg transition-transform duration-500 hover:scale-[1.02]"
-                onError={(e) => {
-                  const img = e.target as HTMLImageElement;
-                  img.onerror = null;
-                  img.src = `https://placehold.co/600x600/ecfdf5/059669?text=${encodeURIComponent(
-                    product.name.slice(0, 2).toUpperCase(),
-                  )}`;
-                }}
-              />
+                <img
+                  src={selectedImage}
+                  alt={product.name}
+                  className={`relative z-0 max-h-[460px] w-full object-contain drop-shadow-lg transition-all duration-300 ${
+                    imgVisible ? 'scale-100 opacity-100' : 'scale-[0.97] opacity-0'
+                  }`}
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.onerror = null;
+                    img.src = `https://placehold.co/600x600/ecfdf5/059669?text=${encodeURIComponent(
+                      product.name.slice(0, 2).toUpperCase(),
+                    )}`;
+                  }}
+                />
+              </div>
+
+              {/* Thumbnail strip */}
+              {galleryImages.length > 1 && (
+                <div className="flex items-center gap-3 border-t border-gray-100 bg-white px-6 py-4">
+                  {galleryImages.map((url, idx) => {
+                    const isActive = url === selectedImage;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => selectImage(url)}
+                        aria-label={`View image ${idx + 1}`}
+                        className={`group relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all duration-200 ${
+                          isActive
+                            ? 'border-emerald-500 shadow-md shadow-emerald-100/60'
+                            : 'border-transparent hover:border-emerald-300 hover:shadow-sm'
+                        }`}
+                      >
+                        <img
+                          src={url}
+                          alt={`${product.name} view ${idx + 1}`}
+                          className={`h-full w-full object-cover transition-all duration-200 ${
+                            isActive
+                              ? 'opacity-100'
+                              : 'opacity-70 group-hover:opacity-100'
+                          }`}
+                          onError={(e) => {
+                            const img = e.target as HTMLImageElement;
+                            img.onerror = null;
+                            img.src = `https://placehold.co/120x120/ecfdf5/059669?text=${idx + 1}`;
+                          }}
+                        />
+                        {isActive && (
+                          <span className="absolute inset-0 rounded-[10px] ring-2 ring-inset ring-emerald-500/30" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Details panel */}
