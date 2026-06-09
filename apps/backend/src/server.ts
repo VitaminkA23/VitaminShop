@@ -13,13 +13,14 @@ const JWT_SECRET = process.env.JWT_SECRET ?? 'vitamin-dev-secret-change-in-prod'
 
 // ─── CORS + body parsing ──────────────────────────────────────────────────────
 
-const allowedOrigins = (
-  process.env.CORS_ORIGIN ?? 'http://localhost:3000,http://localhost:5173,http://localhost:5174'
-)
-  .split(',')
-  .map((o) => o.trim());
-
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    credentials: false,
+  }),
+);
 app.use(express.json());
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
